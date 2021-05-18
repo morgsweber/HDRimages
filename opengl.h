@@ -27,4 +27,19 @@ void arrow_keys(int key, int x, int y);
 void reshape(int w, int h);
 void buildTex();
 
+typedef struct
+{
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
+} RGB;
+
+typedef struct
+{
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
+    unsigned char e;
+} RGBE;
+
 #endif // MYOPENGL_H

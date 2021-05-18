@@ -21,10 +21,10 @@ int sizeX, sizeY;
 unsigned char header[11];
 
 // Pixels da imagem de ENTRADA (em formato RGBE)
-unsigned char* image;
+RGBE *image;
 
 // Pixels da imagem de SAÍDA (em formato RGB)
-unsigned char* image8;
+RGB *image8;
 
 // Fator de exposição
 float exposure;
@@ -40,6 +40,16 @@ unsigned char showhist = 0;
 int minLevel = 0;
 int maxLevel = 255;
 
+int convertHexaToDec(int n){
+
+    // n = 127
+    int a = n/100; // 1
+    int b = (n-(a*100))/10; // 2
+    int c = n%10; // 7
+
+    return (a*pow(16,2)+b*pow(16,1)+c*pow(16,0));
+}
+
 // Função principal de processamento: ela deve chamar outras funções
 // quando for necessário (ex: algoritmo de tone mapping, etc)
 void process()
@@ -54,13 +64,14 @@ void process()
     // SUBSTITUA este código pelos algoritmos a serem implementados
     //
 
-    unsigned char* ptr = image8;
-    int totalBytes = sizeX * sizeY * 3; // RGB = 3 bytes por pixel
-    for(int pos=0; pos<totalBytes; pos+=3) {
+    RGB *ptr = image8;
+    int tamanho = sizeX * sizeY; // RGB = 3 bytes por pixel
+    for(int pos=0; pos<tamanho; pos++) {
         // Gera tons de LARANJA, de acordo com o fator de exposição
-        *ptr++ = (unsigned char) (255 * expos);
-        *ptr++ = (unsigned char) (127 * expos);
-        *ptr++ = (unsigned char) (0 * expos);
+        ptr -> r = (unsigned char) (255 * expos);
+        ptr -> g = (unsigned char) (127 * expos);
+        ptr -> b = (unsigned char) (0 * expos);
+        ptr++;
     }
 
     // Dica: se você precisar de um vetor de floats para armazenar
@@ -99,10 +110,39 @@ int main(int argc, char** argv)
     printf("Minha altura: %d \n", minhaAltura);
 
     carregaImagem(arq, minhaLargura, minhaAltura);
+    int tamanhoEntrada = sizeof(RGBE) * minhaAltura * minhaLargura;
+    RGBE *ptrE = image;
 
-    for(int i=0; i<12; i+=4) {
-        printf("%d %02X %02X %02X\n", image[i], image[i+1], image[i+2], image[i+3]);
+    for(int pos=0; pos<4; pos++) {
+        //pega o valor da mantissa 
+        int m = convertHexaToDec((int)&ptrE->e);
+
+        //converte m para decimal 
+        //int m1 = (int)m;
+        //m1 = convertHexaToDec(m1);
+
+        //calcula o c 
+        int c = pow(2, (m-129));
+
+        //pega os valores de R G e B
+        int r = (convertHexaToDec((int)(&ptrE -> r))) * c;
+        int g = (convertHexaToDec((int)(&ptrE -> g))) * c;
+        int b = (convertHexaToDec((int)(&ptrE -> b))) * c;
+        ptrE++;
+
+        printf("M: %d ", m);
     }
+
+   /*for(int i=0; i<; i+=4) {
+        //pega a mantissa
+        int m = image[3];
+        //calcula o c 
+        int c = pow(2, (m-129));
+        float r = image[i] * c;
+        float g = image[i+1] * c;
+        float b = image[i+2] * c;
+        //printf("%d %02X %02X %02X\n", image[i], image[i+1], image[i+2], image[i+3]);
+    }*/
     
     // Fecha o arquivo
     fclose(arq);
@@ -140,13 +180,13 @@ void criaImagensTeste()
     sizeX = 800;
     sizeY = 600;
 
-    printf("%d x %d\n", sizeX, sizeY);
+    //printf("%d x %d\n", sizeX, sizeY);
 
     // Aloca imagem de entrada (32 bits RGBE)
-    image = (unsigned char*) malloc(sizeof(unsigned char) * sizeX * sizeY * 4);
+    image = (RGBE *) malloc(sizeof(RGBE) * sizeX * sizeY);
 
     // Aloca memória para imagem de saída (24 bits RGB)
-    image8 = (unsigned char*) malloc(sizeof(unsigned char) * sizeX * sizeY * 3);
+    image8 = (RGB *) malloc(sizeof(RGB) * sizeX * sizeY );
 }
 
 // Esta função deverá ser utilizada para ler o conteúdo do header
@@ -156,7 +196,7 @@ void carregaHeader(FILE* fp)
     // Lê 11 bytes do início do arquivo
     fread(header, 11, 1, fp);
     // Exibe os 3 primeiros caracteres, para verificar se a leitura ocorreu corretamente
-    printf("Id: %c%c%c\n", header[0], header[1], header[2]);
+    //printf("Id: %c%c%c\n", header[0], header[1], header[2]);
 }
 
 // Esta função deverá ser utilizada para carregar o restante
@@ -167,16 +207,16 @@ void carregaImagem(FILE* fp, int largura, int altura)
     sizeY = altura;
 
     // Aloca imagem de entrada (32 bits RGBE)
-    image = (unsigned char*) malloc(sizeof(unsigned char) * sizeX * sizeY * 4);
+    image = (RGBE *) malloc(sizeof(RGBE) * sizeX * sizeY);
 
     // Aloca memória para imagem de saída (24 bits RGB)
-    image8 = (unsigned char*) malloc(sizeof(unsigned char) * sizeX * sizeY * 3);
+    image8 = (RGB *) malloc(sizeof(RGB) * sizeX * sizeY);
 
     // Lê o restante da imagem de entrada
     fread(image, sizeX * sizeY * 4, 1, fp);
     // Exibe primeiros 3 pixels, para verificação
     for(int i=0; i<12; i+=4) {
-        printf("%02X %02X %02X %02X\n", image[i], image[i+1], image[i+2], image[i+3]);
+        //printf("%02X %02X %02X %02X\n", image[i], image[i+1], image[i+2], image[i+3]);
     }
 }
 
